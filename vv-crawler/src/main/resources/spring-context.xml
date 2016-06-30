@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans"
+	xmlns:context="http://www.springframework.org/schema/context" xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:mongo="http://www.springframework.org/schema/data/mongo" xmlns:task="http://www.springframework.org/schema/task"
+	xsi:schemaLocation="
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
+		http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.0.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.0.xsd
+		http://www.springframework.org/schema/data/mongo http://www.springframework.org/schema/data/mongo/spring-mongo-1.0.xsd
+		http://www.springframework.org/schema/task http://www.springframework.org/schema/task/spring-task-4.0.xsd
+		">
+
+	<context:property-placeholder location="classpath:crawler.properties" />
+
+	<context:component-scan base-package="org.qingzhu.vvshaor.crawler">
+		<context:exclude-filter type="annotation" expression="org.springframework.stereotype.Controller" />
+	</context:component-scan>
+
+	<aop:aspectj-autoproxy />
+
+	<!-- mongo -->
+	<mongo:mongo host="${mongo.host}" port="${mongo.port}" />
+	<mongo:db-factory dbname="${mongo.db}" mongo-ref="mongo" username="${mongo.username}" password="${mongo.password}" />
+	<bean id="mongoTemplate" class="org.springframework.data.mongodb.core.MongoTemplate">
+		<constructor-arg name="mongoDbFactory" ref="mongoDbFactory" />
+	</bean>
+
+	<!-- spider -->
+	<bean id="liuyiErtongSpiderService" class="org.qingzhu.vvshaor.crawler.service.SpiderService">
+		<constructor-arg index="0" ref="liuyiErtongSpider" />
+		<constructor-arg index="1">
+			<bean class="org.qingzhu.vvshaor.crawler.model.PageLink">
+				<property name="seed" value="${spider.61ertong.seed}" />
+				<property name="pageUrl" value="${spider.61ertong.seedurl}" />
+				<property name="depth" value="1" />
+			</bean>
+		</constructor-arg>
+	</bean>
+
+	<!-- executor -->
+	<task:scheduler id="crawlScheduler" pool-size="5" />
+	<task:scheduled-tasks scheduler="crawlScheduler">
+		<task:scheduled ref="liuyiErtongSpiderService" method="run" initial-delay="10000" fixed-delay="1800000" />
+	</task:scheduled-tasks>
+	<!-- <task:executor id="crawlExecutor" pool-size="5" /> -->
+	<!-- <task:annotation-driven scheduler="crawlScheduler" executor="crawlExecutor" /> -->
+
+</beans>
